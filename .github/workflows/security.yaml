@@ -10,7 +10,7 @@ on:
       - main
       - security-pipeline 
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sundays
+    - cron: '0 0 * * 0'  # Weekly on Sundays   
 
 jobs: 
   security-checks:
@@ -21,76 +21,63 @@ jobs:
       security-events: write  # Required for CodeQL uploads
 
     steps:
-      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Initialize CodeQL (for JavaScript)
+      # Step 1: Initialize CodeQL (language: JavaScript)
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript
 
-      # Step 3: Set up Node.js
+      # Step 2: Set up Node.js for ESLint
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '18'
 
-      # Step 4: Install dependencies and ESLint plugins
+      # Step 3: Install dependencies + ESLint plugins
       - name: Install dependencies
         run: |
           npm install
           npm install --save-dev eslint eslint-plugin-security eslint-plugin-node
 
-      # Step 5: Run ESLint
+      # Step 4: Run ESLint and output JSON report
       - name: Run ESLint
         run: |
           npx eslint . --ext .js,.jsx,.ts,.tsx --format json -o eslint-results.json || true
 
-      # Step 6: Upload ESLint Report
+      # Step 5: Upload ESLint report as artifact
       - name: Upload ESLint Report
         uses: actions/upload-artifact@v4
         with:
           name: eslint-results
           path: eslint-results.json
 
-      # Step 7: Run OWASP Dependency-Check
-      - name: Download OWASP Dependency-Check
-        run: |
-          curl -L -o dc.zip https://github.com/jeremylong/DependencyCheck/releases/download/v12.1.0/dependency-check-12.1.0-release.zip
-          unzip dc.zip -d dc
-
-      - name: Run OWASP Dependency-Check
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          mkdir -p dependency-check-report
-          ./dc/dependency-check/bin/dependency-check.sh \
-            --project "MyNodeApp" \
-            --scan ./ \
-            --format "JSON" \
-            --out dependency-check-report \
-            --disableAssembly true
-            --nvdApiKey "$NVD_API_KEY"
-
-      - name: Upload OWASP Dependency Reports (HTML + JSON)
-        uses: actions/upload-artifact@v4
-        with:
-          name: owasp-dependency-check-report
-          path: |
-            dependency-check-report/dependency-check-report.html
-            dependency-check-report/dependency-check-report.json
-
-      # Step 8: Run CodeQL Analysis
+      # Step 6: Perform CodeQL Analysis
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           output: results/javascript.sarif
 
-      # Step 9: Upload CodeQL SARIF Results
+      # Step 7: Upload CodeQL SARIF Results
       - name: Upload CodeQL SARIF Results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results/javascript.sarif
           category: custom-codeql-analysis
+
+      # Step 8: Run Snyk Dependency Scan
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: test --all-projects --json-file-output=snyk-results.json || true
+
+      # Step 9: Upload Snyk report as artifact
+      - name: Upload Snyk JSON Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-results
+          path: snyk-results.json
