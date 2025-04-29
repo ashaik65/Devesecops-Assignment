@@ -2,17 +2,17 @@ name: Security Checks
 
 on:
   push:
-    branches: 
+    branches:
       - main
       - security-pipeline
   pull_request:
     branches:
       - main
-      - security-pipeline 
+      - security-pipeline
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sundays   
+    - cron: '0 0 * * 0'  # Weekly on Sundays
 
-jobs: 
+jobs:
   security-checks:
     runs-on: ubuntu-latest
     permissions:
@@ -43,50 +43,60 @@ jobs:
           npm install
           npm install --save-dev eslint eslint-plugin-security eslint-plugin-node
 
-      # Step 5: Run ESLint and output JSON report
+      # Step 5: Run ESLint
       - name: Run ESLint
         run: |
           npx eslint . --ext .js,.jsx,.ts,.tsx --format json -o eslint-results.json || true
 
-      # Step 6: Upload ESLint report
+      # Step 6: Upload ESLint Report
       - name: Upload ESLint Report
         uses: actions/upload-artifact@v4
         with:
           name: eslint-results
           path: eslint-results.json
 
-      # Step 7: Perform CodeQL analysis
+      # Step 7: CodeQL Analysis
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           output: results/javascript.sarif
 
-      # Step 8: Upload CodeQL results
+      # Step 8: Upload CodeQL Results
       - name: Upload CodeQL SARIF Results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results/javascript.sarif
           category: custom-codeql-analysis
 
-      # Step 9: Install Trivy for Dependency Scanning
-      - name: Install Trivy
+      # Step 9: Install Trivy and Trivy-to-HTML
+      - name: Install Trivy and HTML converter
         run: |
           sudo apt-get update
-          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+          sudo apt-get install wget curl -y
+          
+          # Install Trivy
           wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
           echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
           sudo apt-get update
           sudo apt-get install trivy -y
+          
+          # Install trivy-to-html
+          curl -Lo trivy-to-html https://github.com/gitleaks/trivy-to-html/releases/latest/download/trivy-to-html-linux-amd64
+          chmod +x trivy-to-html
+          sudo mv trivy-to-html /usr/local/bin/
 
-      # Step 10: Run Trivy dependency scan
-      - name: Run Trivy Dependency Scan
+      # Step 10: Run Trivy and generate reports
+      - name: Run Trivy Scan and Generate HTML Report
         run: |
           mkdir -p trivy-reports
           trivy fs . --scanners vuln --vuln-type library --format json --output trivy-reports/trivy-results.json || true
           trivy fs . --scanners vuln --vuln-type library --format table --output trivy-reports/trivy-report.txt || true
 
+          # Generate HTML report
+          trivy-to-html -i trivy-reports/trivy-results.json -o trivy-reports/trivy-report.html
+
       # Step 11: Upload Trivy Reports
-      - name: Upload Trivy Reports
+      - name: Upload Trivy Reports (HTML, JSON, TXT)
         uses: actions/upload-artifact@v4
         with:
           name: trivy-reports
