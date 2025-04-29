@@ -45,7 +45,7 @@ jobs:
 
 # Step 5: Perform the CodeQL analysis
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@latest
         with:
             database: codeql-db
             output: codeql-results.sarif
