@@ -54,9 +54,12 @@ jobs:
           name: eslint-results
           path: eslint-results.json
 
-      # Step 6: Perform CodeQL Analysis
+      # Step 6: Perform CodeQL Analysis (without running default queries)
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        with:
+          # Specify output path for the SARIF file
+          output: results/javascript.sarif
 
       # Step 7: Upload CodeQL SARIF Results manually
       - name: Upload CodeQL SARIF Results
