@@ -1,0 +1,51 @@
+name: Security Checks
+
+on:
+   push:
+    branches: 
+      - main
+      - security-pipeline
+   pull_request:
+     branches:
+        - main
+        - security-pipeline 
+   schedule:
+     - cron: '0 0 * * 0'  # Weekly on sundays   
+
+jobs: 
+  security-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        
+# Static Application Security Testing (SAST) with CodeQL
+
+ # Step 1: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16' # Use Node.js 16.x
+
+# Step 2: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+# Step 3: Set up CodeQL
+      - name: Set up CodeQL
+        uses: github/codeql-action/setup@v2
+        with:
+          languages: 'javascript' 
+                
+# Step 4: Initialize the CodeQL database
+      - name: Initialize CodeQL database
+        run: |
+            codeql database create codeql-db --language=javascript   
+
+# Step 5: Perform the CodeQL analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+            database: codeql-db
+            output: codeql-results.sarif
