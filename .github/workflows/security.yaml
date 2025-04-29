@@ -2,17 +2,17 @@ name: Security Checks
 
 on:
   push:
-    branches: 
+    branches:
       - main
       - security-pipeline
   pull_request:
     branches:
       - main
-      - security-pipeline 
+      - security-pipeline
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sundays   
+    - cron: '0 0 * * 0'  # Weekly on Sundays
 
-jobs: 
+jobs:
   security-checks:
     runs-on: ubuntu-latest
     permissions:
@@ -24,58 +24,62 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 1: Initialize CodeQL (language: JavaScript)
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-
-      # Step 2: Set up Node.js for ESLint
+      # Set up Node.js for ESLint and Snyk
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # Step 3: Install dependencies + ESLint plugins
+      # Install dependencies
       - name: Install dependencies
         run: |
           npm install
           npm install --save-dev eslint eslint-plugin-security eslint-plugin-node
 
-      # Step 4: Run ESLint and output JSON report
+      # Run ESLint and generate JSON report
       - name: Run ESLint
         run: |
           npx eslint . --ext .js,.jsx,.ts,.tsx --format json -o eslint-results.json || true
 
-      # Step 5: Upload ESLint report as artifact
+      # Upload ESLint Report
       - name: Upload ESLint Report
         uses: actions/upload-artifact@v4
         with:
           name: eslint-results
           path: eslint-results.json
 
-      # Step 6: Perform CodeQL Analysis
+      # Initialize CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      # Perform CodeQL Analysis
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           output: results/javascript.sarif
 
-      # Step 7: Upload CodeQL SARIF Results
+      # Upload CodeQL SARIF Report
       - name: Upload CodeQL SARIF Results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results/javascript.sarif
           category: custom-codeql-analysis
 
-      # Step 8: Run Snyk Dependency Scan
+      # Install Snyk CLI
+      - name: Install Snyk CLI
+        run: |
+          npm install -g snyk
+
+      # Run Snyk to check for vulnerabilities
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: test --all-projects --json-file-output=snyk-results.json || true
+        run: |
+          snyk test --all-projects --json-file-output=snyk-results.json || true
 
-      # Step 9: Upload Snyk report as artifact
+      # Upload Snyk JSON Report
       - name: Upload Snyk JSON Report
         uses: actions/upload-artifact@v4
         with:
