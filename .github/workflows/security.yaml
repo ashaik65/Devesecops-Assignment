@@ -15,31 +15,45 @@ on:
 jobs: 
   security-checks:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write  # Required for CodeQL
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
-      # Step 1: Set up Node.js
+
+      # Step 1: Initialize CodeQL (language: JavaScript)
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      # Step 2: Set up Node.js for ESLint
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '18'  # Or use 18 if supported
+          node-version: '18'
 
-      # Step 2: Install all dependencies
+      # Step 3: Install dependencies + ESLint plugins
       - name: Install dependencies
         run: |
           npm install
           npm install --save-dev eslint eslint-plugin-security eslint-plugin-node
 
-      # Step 3: Run ESLint and output JSON report
+      # Step 4: Run ESLint and output JSON report
       - name: Run ESLint
         run: |
           npx eslint . --ext .js,.jsx,.ts,.tsx --format json -o eslint-results.json || true
 
-      # Optional Step 4: Upload ESLint results as an artifact
+      # Step 5: Upload ESLint report as artifact
       - name: Upload ESLint Report
         uses: actions/upload-artifact@v4
         with:
           name: eslint-results
           path: eslint-results.json
+
+      # Step 6: Perform CodeQL Analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
