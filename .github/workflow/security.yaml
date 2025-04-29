@@ -34,7 +34,7 @@ jobs:
 
 # Step 3: Set up CodeQL
       - name: Set up CodeQL
-        uses: github/codeql-action/setup@v2
+        uses: github/codeql-action/setup@latest
         with:
           languages: 'javascript' 
                 
