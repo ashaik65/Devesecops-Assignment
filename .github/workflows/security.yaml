@@ -1,16 +1,16 @@
 name: Security Checks
 
 on:
-   push:
+  push:
     branches: 
       - main
       - security-pipeline
-   pull_request:
-     branches:
-        - main
-        - security-pipeline 
-   schedule:
-     - cron: '0 0 * * 0'  # Weekly on sundays   
+  pull_request:
+    branches:
+      - main
+      - security-pipeline 
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sundays   
 
 jobs: 
   security-checks:
@@ -20,21 +20,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-# Static Application Security Testing (SAST) with CodeQL
-
- # Step 1: Set up Node.js for ES lint
+      # Step 1: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16' # Use Node.js 16.x
+          node-version: '16'  # Or use 18 if supported
 
-# Step 2: Install dependencies
+      # Step 2: Install all dependencies
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install --save-dev eslint eslint-plugin-security eslint-plugin-node
 
-        # Step 3: Run ESLint for code linting
-      - name: Install ESLint
-        run: npm install eslint eslint-plugin-security --save-dev
-
+      # Step 3: Run ESLint and output JSON report
       - name: Run ESLint
-        run: npx eslint . --ext .js,.jsx,.ts,.tsx --format json > eslint-results.json || true
+        run: |
+          npx eslint . --ext .js,.jsx,.ts,.tsx --format json -o eslint-results.json || true
+
+      # Optional Step 4: Upload ESLint results as an artifact
+      - name: Upload ESLint Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-results
+          path: eslint-results.json
