@@ -58,11 +58,11 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          # Specify output path for the SARIF file
           output: results/javascript.sarif
 
-      # Step 7: Upload CodeQL SARIF Results manually
+      # Step 7: Upload CodeQL SARIF Results (with a unique category to prevent duplicate uploads)
       - name: Upload CodeQL SARIF Results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3  # Updated to v3
         with:
           sarif_file: results/javascript.sarif
+          category: custom-codeql-analysis  # Add a unique category here
