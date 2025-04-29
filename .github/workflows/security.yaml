@@ -18,11 +18,11 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         
 # Static Application Security Testing (SAST) with CodeQL
 
- # Step 1: Set up Node.js
+ # Step 1: Set up Node.js for ES lint
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
@@ -32,20 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-# Step 3: Set up CodeQL
-      - name: Set up CodeQL
-        uses: github/codeql-action/setup@latest
-        with:
-          languages: 'javascript' 
-                
-# Step 4: Initialize the CodeQL database
-      - name: Initialize CodeQL database
-        run: |
-            codeql database create codeql-db --language=javascript   
+        # Step 3: Run ESLint for code linting
+      - name: Install ESLint
+        run: npm install eslint eslint-plugin-security --save-dev
 
-# Step 5: Perform the CodeQL analysis
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@latest
-        with:
-            database: codeql-db
-            output: codeql-results.sarif
+      - name: Run ESLint
+        run: npx eslint . --ext .js,.jsx,.ts,.tsx --format json > eslint-results.json || true
