@@ -58,7 +58,7 @@ jobs:
       # Step 7: Run OWASP Dependency-Check
       - name: Download OWASP Dependency-Check
         run: |
-          curl -L -o dc.zip https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.0/dependency-check-8.4.0-release.zip
+          curl -L -o dc.zip https://github.com/jeremylong/DependencyCheck/releases/download/v12.1.0/dependency-check-12.1.0-release.zip
           unzip dc.zip -d dc
 
       - name: Run OWASP Dependency-Check
