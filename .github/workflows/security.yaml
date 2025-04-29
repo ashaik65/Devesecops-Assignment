@@ -2,17 +2,17 @@ name: Security Checks
 
 on:
   push:
-    branches:
+    branches: 
       - main
       - security-pipeline
   pull_request:
     branches:
       - main
-      - security-pipeline
+      - security-pipeline 
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sundays
+    - cron: '0 0 * * 0'  # Weekly on Sundays   
 
-jobs:
+jobs: 
   security-checks:
     runs-on: ubuntu-latest
     permissions:
@@ -21,80 +21,73 @@ jobs:
       security-events: write  # Required for CodeQL
 
     steps:
-      # Checkout the code
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Node.js
+      # Step 2: Initialize CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      # Step 3: Set up Node.js for ESLint
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '18'
 
-      # Install dependencies + ESLint plugins
+      # Step 4: Install dependencies + ESLint plugins
       - name: Install dependencies
         run: |
           npm install
           npm install --save-dev eslint eslint-plugin-security eslint-plugin-node
 
-      # Run ESLint and generate JSON report
+      # Step 5: Run ESLint and output JSON report
       - name: Run ESLint
         run: |
           npx eslint . --ext .js,.jsx,.ts,.tsx --format json -o eslint-results.json || true
 
-      # Upload ESLint JSON report
+      # Step 6: Upload ESLint report
       - name: Upload ESLint Report
         uses: actions/upload-artifact@v4
         with:
           name: eslint-results
           path: eslint-results.json
 
-      # Initialize CodeQL
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-
-      # Run CodeQL Analysis
+      # Step 7: Perform CodeQL analysis
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           output: results/javascript.sarif
 
-      # Upload CodeQL SARIF
+      # Step 8: Upload CodeQL results
       - name: Upload CodeQL SARIF Results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results/javascript.sarif
           category: custom-codeql-analysis
 
-      # Install Snyk CLI
-      - name: Install Snyk CLI
+      # Step 9: Install Trivy for Dependency Scanning
+      - name: Install Trivy
         run: |
-          npm install -g snyk snyk-to-html
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy -y
 
-      # Run Snyk and output JSON report
-      - name: Run Snyk to check for vulnerabilities
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      # Step 10: Run Trivy dependency scan
+      - name: Run Trivy Dependency Scan
         run: |
-          snyk test --all-projects --json-file-output=snyk-results.json || true
+          mkdir -p trivy-reports
+          trivy fs . --scanners vuln --vuln-type library --format json --output trivy-reports/trivy-results.json || true
+          trivy fs . --scanners vuln --vuln-type library --format table --output trivy-reports/trivy-report.txt || true
 
-      # Convert Snyk JSON to HTML
-      - name: Convert Snyk JSON to HTML
-        run: |
-          snyk-to-html -i snyk-results.json -o snyk-report.html
-
-      # Upload Snyk JSON Report
-      - name: Upload Snyk JSON Report
+      # Step 11: Upload Trivy Reports
+      - name: Upload Trivy Reports
         uses: actions/upload-artifact@v4
         with:
-          name: snyk-json-report
-          path: snyk-results.json
-
-      # Upload Snyk HTML Report
-      - name: Upload Snyk HTML Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: snyk-html-report
-          path: snyk-report.html
+          name: trivy-reports
+          path: trivy-reports
