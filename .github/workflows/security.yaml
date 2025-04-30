@@ -122,4 +122,26 @@ jobs:
             else
               echo "✅ No secrets detected by Gitleaks." >> $GITHUB_STEP_SUMMARY
             fi
- 
+      
+      # Step 15: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Step 16: Build Docker Image (with dummy key for CI)
+      - name: Build Docker Image
+        run: |
+          docker build --build-arg TMDB_V3_API_KEY=dummy_key -t my-app:latest .
+
+      # Step 17: Scan Docker Image with Trivy
+      - name: Run Trivy Container Image Scan
+        run: |
+          mkdir -p trivy-container-reports
+          trivy image --format json --output trivy-container-reports/image-results.json my-app:latest || true
+          trivy image --format table --output trivy-container-reports/image-report.txt my-app:latest || true
+
+      # Step 18: Upload Container Scan Results
+      - name: Upload Trivy Container Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-container-reports
+          path: trivy-container-reports      
