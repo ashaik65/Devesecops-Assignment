@@ -118,17 +118,17 @@ jobs:
             echo "| Rule ID | Commit | Secret URL | Start Line | Author | Date | Email | File |" >> $GITHUB_STEP_SUMMARY
             echo "|---------|--------|-------------|------------|--------|------|-------|------|" >> $GITHUB_STEP_SUMMARY
             jq -r '.[] |
-              "| \(.RuleID // "N/A") \
-              | \(.Commit[0:7] // "N/A") \
-              | [View Secret](\(.Link // "#")) \
-              | \(.StartLine // "N/A") \
-              | \(.Author // "N/A") \
-              | \(.Date // "N/A") \
-              | \(.Email // "N/A") \
-              | \(.File // "N/A") |"' gitleaks-results.json >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ No secrets detected by Gitleaks." >> $GITHUB_STEP_SUMMARY
-          fi
+                "| \(.RuleID // "N/A") \
+                | \(.Commit[0:7] // "N/A") \
+                | [View Secret](\(.Link // "#")) \
+                | \(.StartLine // "N/A") \
+                | \(.Author // "N/A") \
+                | \(.Date // "N/A") \
+                | \(.Email // "N/A") \
+                | \(.File // "N/A") |"' gitleaks-results.json >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ No secrets detected by Gitleaks." >> $GITHUB_STEP_SUMMARY
+            fi
       
       # Step 15: Set up Docker Buildx
       - name: Set up Docker Buildx
