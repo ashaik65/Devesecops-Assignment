@@ -113,12 +113,13 @@ jobs:
       - name: Gitleaks Job Summary
         if: always()
         run: |
-         if [ -s gitleaks-results.json ]; then
-          echo "### 🛑 Gitleaks detected secrets 🛑" >> $GITHUB_STEP_SUMMARY
-          echo "| Rule ID | Commit | Start Line | Author | Date | Email | File |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|--------|------------|--------|------|-------|------|" >> $GITHUB_STEP_SUMMARY
-          jq -r '.findings[] | 
-            "| \(.ruleID // "N/A") | \(.commit // "N/A") | \(.line // "N/A") | \(.author // "N/A") | \(.date // "N/A") | \(.email // "N/A") | \(.file // "N/A") |"' gitleaks-results.json >> $GITHUB_STEP_SUMMARY
-         else
-          echo "✅ No secrets detected by Gitleaks." >> $GITHUB_STEP_SUMMARY
-         fi 
+          if [ -s gitleaks-results.json ]; then
+            echo "### 🛑 Gitleaks detected secrets 🛑" >> $GITHUB_STEP_SUMMARY
+            echo "| Rule ID | Commit | Start Line | Author | Date | Email | File |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------|--------|------------|--------|------|-------|------|" >> $GITHUB_STEP_SUMMARY
+            jq -r '.[] | 
+              "| \(.RuleID // "N/A") | \(.Commit // "N/A") | \(.StartLine // "N/A") | \(.Author // "N/A") | \(.Date // "N/A") | \(.Email // "N/A") | \(.File // "N/A") |"' gitleaks-results.json >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ No secrets detected by Gitleaks." >> $GITHUB_STEP_SUMMARY
+            fi
+ 
