@@ -18,76 +18,79 @@ jobs:
     permissions:
       actions: read
       contents: read
-      security-events: write  # Required for CodeQL
+      security-events: write
 
     steps:
-      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Initialize CodeQL
+      # --- CodeQL SAST ---
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript
 
-      # Step 3: Set up Node.js for ESLint
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18'
-
-      # Step 4: Install dependencies + ESLint plugins
-      - name: Install dependencies
-        run: |
-          npm install
-          npm install --save-dev eslint eslint-plugin-security eslint-plugin-node
-
-      # Step 5: Run ESLint and output JSON report
-      - name: Run ESLint
-        run: |
-          npx eslint . --ext .js,.jsx,.ts,.tsx --format json -o eslint-results.json || true
-
-      # Step 6: Upload ESLint report
-      - name: Upload ESLint Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: eslint-results
-          path: eslint-results.json
-
-      # Step 7: Perform CodeQL analysis
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           output: results/javascript.sarif
 
-      # Step 8: Upload CodeQL results
       - name: Upload CodeQL SARIF Results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results/javascript.sarif
           category: custom-codeql-analysis
 
-      # Step 9: Install Trivy for Dependency Scanning
+      # --- ESLint ---
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      - name: Install dependencies and ESLint
+        run: |
+          npm install
+          npm install --save-dev eslint eslint-plugin-security eslint-plugin-node
+
+      - name: Run ESLint
+        run: |
+          npx eslint . --ext .js,.jsx,.ts,.tsx --format json -o eslint-results.json || true
+
+      - name: Upload ESLint JSON Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-results
+          path: eslint-results.json
+
+      # --- Trivy Dependency Scan ---
       - name: Install Trivy
         run: |
-          sudo apt-get update
-          sudo apt-get install wget apt-transport-https gnupg lsb-release -y
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
-          sudo apt-get install trivy -y
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.2_Linux-64bit.deb
+          sudo dpkg -i trivy_0.50.2_Linux-64bit.deb
 
-      # Step 10: Run Trivy dependency scan
-      - name: Run Trivy Dependency Scan
+      - name: Run Trivy and Generate Reports
         run: |
           mkdir -p trivy-reports
-          trivy fs . --scanners vuln --vuln-type library --format json --output trivy-reports/trivy-results.json || true
-          trivy fs . --scanners vuln --vuln-type library --format table --output trivy-reports/trivy-report.txt || true
+          trivy fs . --scanners vuln --format json --output trivy-reports/trivy-results.json || true
+          trivy fs . --scanners vuln --format template --template "@/contrib/html.tpl" -o trivy-reports/trivy-report.html || true
 
-      # Step 11: Upload Trivy Reports
       - name: Upload Trivy Reports
         uses: actions/upload-artifact@v4
         with:
           name: trivy-reports
-          path: trivy-reports
+          path: trivy-reports/
+
+      # --- Gitleaks Secret Scanning (JSON only) ---
+      - name: Install Gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_$(uname -s)_x64.tar.gz | tar -xz -C /usr/local/bin gitleaks
+
+      - name: Run Gitleaks Secret Scan
+        run: |
+          gitleaks detect --source . --report-format json --report-path gitleaks-report.json || true
+
+      - name: Upload Gitleaks JSON Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
