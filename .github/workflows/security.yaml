@@ -109,4 +109,16 @@ jobs:
           name: gitleaks-results
           path: gitleaks-results.json
 
-
+      # ✅ Step 14: Gitleaks Job Summary (New Step)
+      - name: Gitleaks Job Summary
+        if: always()
+        run: |
+          if [ -s gitleaks-results.json ]; then
+            echo "### 🛑 Gitleaks detected secrets 🛑" >> $GITHUB_STEP_SUMMARY
+            echo "| Rule ID | Commit | Start Line | Author | Date | Email | File |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------|--------|------------|--------|------|-------|------|" >> $GITHUB_STEP_SUMMARY
+            jq -r '.[] | 
+              "| \(.ruleID) | \(.commit) | \(.lineNumber) | \(.author) | \(.date) | \(.email) | \(.file) |"' gitleaks-results.json >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No secrets detected by Gitleaks." >> $GITHUB_STEP_SUMMARY
+          fi
