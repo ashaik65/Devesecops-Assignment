@@ -92,17 +92,24 @@ jobs:
           name: trivy-reports
           path: trivy-reports
 
-      # Step 12: Run Gitleaks using GitHub Action and generate JSON report
-      - name: Run Gitleaks Secret Scan
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          scan_args: detect --source=. --report-format=json --report-path=gitleaks-results.json || true
+      # Step 12: Install Gitleaks
+      
+      - name: Download and Install Gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 -o gitleaks
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
 
-      # Step 13: Upload Gitleaks JSON Report
+      # Step 13: Run Gitleaks using GitHub Action and generate JSON report
+      - name: Run Gitleaks Secret Scan
+        run: |
+          gitleaks detect --source=. --report-format=json --report-path=gitleaks-results.json || true
+
+      # Step 14: Upload Gitleaks JSON Report
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
         with:
-          name: gitleaks-report
-          path: gitleaks-report.json
+          name: gitleaks-results
+          path: gitleaks-results.json
 
 
