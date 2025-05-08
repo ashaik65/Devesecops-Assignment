@@ -85,12 +85,12 @@ By shifting security left into the CI/CD pipeline:
 
 ---
 
-📸 **Insert Screenshot 2: Gitleaks Markdown Summary Output**  
+
 *Show Gitleaks results rendered inside GitHub Actions with links to commits/secrets.*
 
 ![alt text](<Gitleaks summary.png>)
 
-📸 **Insert Screenshot 3: ESLint or Trivy Report Artifacts**  
+
 
 ![alt text](Artifcats.png)
 ---
