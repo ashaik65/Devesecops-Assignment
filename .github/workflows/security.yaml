@@ -9,8 +9,8 @@ on:
     branches:
       - main
       - security-pipeline 
-  schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sundays   
+  # schedule:
+  #   - cron: '0 0 * * 0'  # Weekly on Sundays   
 
 jobs: 
   security-checks:
